@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.custom_progress::-webkit-progress-value {
+    background-color: #8547EE;
+}
+
+.custom_progress::-webkit-progress-bar {
+    border-radius: 100px;
+    overflow: hidden;
+    height: 5px;
+    background-color: rgb(242, 242, 242);
+}
+
+html {
+    scroll-padding-top: 128px;
+    scroll-behavior: smooth;
+}

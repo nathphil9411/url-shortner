@@ -1,0 +1,571 @@
+openapi: 3.0.3
+info:
+    title: URL Shortener API
+    description: API for managing URL shortening, QR code generation, and URL information.
+    version: 1.0.0
+servers:
+    - url: https://arowobenedict.tech/api
+      description: Production Server
+
+tags:
+    - name: Main
+    - name: Authentication
+      description: Endpoints for user authentication
+    - name: URL
+      description: Endpoints for URL operations
+    - name: Token
+      description: Endpoints for Token operations
+
+paths:
+    /{id}:
+        get:
+            summary: "Visit Shortened URL"
+            description: "Redirects to the original URL based on the shortened URL ID and logs user information."
+            tags:
+                - Main
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  description: "The ID of the shortened URL"
+                  schema:
+                      type: string
+                - name: Authorization
+                  in: header
+                  required: false
+                  description: "Bearer token for JWT authentication (optional)"
+                  schema:
+                      type: string
+                      example: "Bearer your_jwt_token_here"
+                - name: api_key
+                  in: header
+                  required: false
+                  description: "API key for authentication (optional)"
+                  schema:
+                      type: string
+                      example: "your_api_key_here"
+            responses:
+                "200":
+                    description: "Successful redirection to the original URL"
+                    content:
+                        text/html:
+                            schema:
+                                type: string
+                                example: "<html><body>Redirecting...</body></html>"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+    /auth/register:
+        post:
+            description: Register a new user
+            tags:
+                - Authentication
+            security: []
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                email:
+                                    type: string
+                                    default: johndoe@email.com
+                                password:
+                                    type: string
+                                    default: securePassword123
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                                        default: Registration successful
+                                    data:
+                                        type: object
+                                        properties:
+                                            email:
+                                                type: string
+                                            created_at:
+                                                type: string
+                "409":
+                    $ref: "#/components/responses/Conflict"
+                "422":
+                    $ref: "#/components/responses/UnprocessableEntity"
+    /auth/login:
+        post:
+            description: "Login a user"
+            tags:
+                - Authentication
+            security: []
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                email:
+                                    type: string
+                                    default: johndoe@email.com
+                                password:
+                                    type: string
+                                    default: securePassword123
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                                        default: Login successful.
+                                    data:
+                                        type: object
+                                        properties:
+                                            access_token:
+                                                type: string
+                                            user:
+                                                type: object
+                                                properties:
+                                                    email:
+                                                        type: string
+                                                    created_at:
+                                                        type: string
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "422":
+                    $ref: "#/components/responses/UnprocessableEntity"
+    /token:
+        get:
+            summary: "Retrieve user's token"
+            description: "Fetches the token associated with a specific user ID."
+            tags:
+                - Token
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    token:
+                                        type: string
+                                    expiration_date:
+                                        type: string
+                                        format: date-time
+                                        description: "The expiration date of the token."
+                                    is_revoked:
+                                        type: boolean
+                                    last_used:
+                                        type: string
+                                        format: date-time
+                                    user_id:
+                                        type: string
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+        post:
+            description: "Creates a new token"
+            tags:
+                - Token
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                                        default: Token created.
+                                    data:
+                                        type: object
+                                        properties:
+                                            token:
+                                                type: string
+                                            expiration_date:
+                                                type: string
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "400":
+                    $ref: "#/components/responses/BadRequestError"
+        delete:
+            description: "Deletes a token"
+            tags:
+                - Token
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            responses:
+                "204":
+                    description: No Content
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+    /url/:
+        get:
+            summary: Get user's URLs
+            description: Retrieve a list of URLs created by the authenticated user.
+            tags:
+                - URL
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            parameters:
+                - name: page
+                  in: query
+                  description: Page number for pagination
+                  required: false
+                  schema:
+                      type: integer
+                      default: 1
+                - name: limit
+                  in: query
+                  description: Number of URLs per page
+                  required: false
+                  schema:
+                      type: integer
+                      default: 10
+            responses:
+                "200":
+                    description: List of URLs
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: "string"
+                                        default: "Success."
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Url"
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+        post:
+            summary: Create a new URL
+            description: Create a new shortened URL.
+            tags:
+                - URL
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UrlCreateRequest"
+            responses:
+                "201":
+                    description: URL created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: "string"
+                                        default: "Successfully created URL."
+                                    data:
+                                        $ref: "#/components/schemas/Url"
+                "400":
+                    $ref: "#/components/responses/BadRequestError"
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+    /url/{id}:
+        get:
+            summary: Get URL details
+            description: Retrieve details of a specific URL.
+            tags:
+                - URL
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  description: URL ID
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: URL details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: "string"
+                                        default: "Success."
+                                    data:
+                                        $ref: "#/components/schemas/Url"
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+        patch:
+            summary: Update a URL
+            description: Update the details of a specific URL.
+            tags:
+                - URL
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  description: URL ID
+                  required: true
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UrlUpdateRequest"
+            responses:
+                "200":
+                    description: URL updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: "string"
+                                        default: "Successfully updated URL."
+                                    data:
+                                        $ref: "#/components/schemas/Url"
+                "400":
+                    $ref: "#/components/responses/BadRequestError"
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+        delete:
+            summary: Delete a URL
+            description: Delete a specific URL.
+            tags:
+                - URL
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  description: URL ID
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "204":
+                    description: URL deleted successfully
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+    /url/{id}/qrcode:
+        post:
+            summary: Generate QR code for a URL
+            description: Generate a QR code for a specific URL.
+            tags:
+                - URL
+            security:
+                - bearerAuth: []
+                - ApiKeyAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  description: URL ID
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: QR code generated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                                        default: QRCode generated successfully
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: string
+                                            url:
+                                                type: string
+                "401":
+                    $ref: "#/components/responses/UnauthorizedError"
+                "404":
+                    $ref: "#/components/responses/NotFoundError"
+components:
+    securitySchemes:
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
+        ApiKeyAuth:
+            type: apiKey
+            in: header
+            name: api_key
+    schemas:
+        Url:
+            type: object
+            properties:
+                id:
+                    type: string
+                short_url:
+                    type: string
+                long_url:
+                    type: string
+                expiration_date:
+                    type: string
+                    format: date-time
+                created_at:
+                    type: string
+                    format: date-time
+                last_visited:
+                    type: string
+                    format: date-time
+                is_safe:
+                    type: boolean
+                clicks:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/UrlClick"
+                qr_code:
+                    type: object
+                    properties:
+                        url:
+                            type: string
+                        id:
+                            type: string
+        UrlClick:
+            type: object
+            properties:
+                id:
+                    type: string
+                ip:
+                    type: string
+                is_unique:
+                    type: boolean
+                browser:
+                    type: string
+                OS:
+                    type: string
+                created_at:
+                    type: string
+                    format: date-time
+                city:
+                    type: string
+                country:
+                    type: string
+                region:
+                    type: string
+                timezone:
+                    type: string
+                lat:
+                    type: number
+                lon:
+                    type: number
+                ip_type:
+                    type: string
+        UrlCreateRequest:
+            type: object
+            properties:
+                short_url:
+                    type: string
+                long_url:
+                    type: string
+                    format: uri
+                    example: "https://example.com"
+                expiration_date:
+                    type: string
+                    format: date-time
+            required:
+                - long_url
+        UrlUpdateRequest:
+            type: object
+            properties:
+                short_url:
+                    type: string
+                long_url:
+                    type: string
+                    format: uri
+                    example: "https://example.com"
+    responses:
+        UnauthorizedError:
+            description: Unauthorized access
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: string
+                                example: "Unauthorized access"
+        BadRequestError:
+            description: Bad request
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: string
+                                example: "Bad request"
+        NotFoundError:
+            description: Resource not found
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: string
+                                example: "Resource not found"
+        Conflict:
+            description: Conflict
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: string
+                                example: "Conflict"
+        UnprocessableEntity:
+            description: Resource not found
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: object
+                                properties:
+                                    errors:
+                                        type: string

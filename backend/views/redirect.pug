@@ -1,0 +1,30 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title Redirecting...
+  body
+    h1= url
+    p Redirecting you to #{url}
+    p You will be redirected to your link in 
+      span#count 3
+      |  seconds.
+    if !is_safe
+      p Beware! This link is not safe
+    button
+      a(href=url) Click here
+
+    script.
+      const url = "#{url}";
+      const countElement = document.getElementById("count");
+
+      const interval = setInterval(() => {
+        if (countElement.textContent == 0) return;
+        countElement.textContent = parseInt(countElement.textContent) - 1;
+      }, 1000);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        window.location.href = url;
+      }, 3000);

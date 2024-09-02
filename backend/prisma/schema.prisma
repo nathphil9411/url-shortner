@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  email String @id @unique 
+  password String
+  links Url[]
+  token Token?
+  created_at DateTime @default(now())
+}
+
+model Url {
+  id String @id @default(cuid())
+  short_url String @unique
+  long_url String
+  expiration_date DateTime
+  qr_code Json? 
+  is_safe Boolean @default(false)
+  clicks UrlClick[]
+  last_visited DateTime?
+  owner User? @relation(fields: [owner_id], references: [email], onDelete: Cascade)
+  owner_id String?
+  created_at DateTime @default(now())
+}
+
+model UrlClick {
+  id String @id @default(cuid())
+  is_unique Boolean @default(false)
+  ip String
+  ip_type String?
+  country String?
+  city String?
+  region String? 
+  OS String?
+  timezone String?
+  lat Int?
+  lon Int?
+  browser String?
+  url Url @relation(fields: [url_id], references: [id], onDelete: Cascade)
+  url_id String
+  created_at DateTime @default(now())
+}
+
+model Token {
+  token String @id @default(cuid())
+  expiration_date DateTime
+  is_revoked Boolean
+  last_used DateTime @default(now())
+  user User? @relation(fields: [user_id], references: [email], onDelete: Cascade)
+  user_id String? @unique
+}
